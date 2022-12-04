@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+
+  <link rel="stylesheet" href="../../plugins/element-ui/index.css" />
+  <link rel="stylesheet" href="../../styles/common.css" />
+  <link rel="stylesheet" href="../../styles/page.css" />
+</head>
+<body>
+  <div class="dashboard-container" id="category-app">
+    <div class="container">
+      <div
+        class="tableBar"
+        style="display: inline-block"
+      >
+        <el-button
+          type="primary"
+          class="continue"
+          @click="addClass('class')"
+        >
+          + add new cuisine category
+        </el-button>
+        <el-button
+          type="primary"
+          @click="addClass('meal')"
+        >
+          + add new combo
+        </el-button>
+      </div>
+      <el-table
+        :data="tableData"
+        stripe
+        class="tableBox"
+      >
+        <el-table-column
+          prop="name"
+          label="Category Name"
+        /></el-table-column>
+        <el-table-column
+          prop="type"
+          label="Category Type"
+        >
+          <template slot-scope="scope">
+            <span>{{ scope.row.type == '1' ? 'cuisine category': 'combo category' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="updateTime"
+          label="Update Time"
+        >
+        <template slot-scope="scope">
+         {{scope.row.updateTime}}
+        </template>
+        </el-table-column>
+        <el-table-column
+          prop="sort"
+          label="Sort"
+        /></el-table-column>
+        <el-table-column
+          label="Action"
+          width="160"
+          align="center"
+        >
+          <template slot-scope="scope">
+            <el-button
+              type="text"
+              size="small"
+              class="blueBug"
+              @click="editHandle(scope.row)"
+            >
+              Update
+            </el-button>
+            <el-button
+              type="text"
+              size="small"
+              class="delBut non"
+              @click="deleteHandle(scope.row.id)"
+            >
+              Delete
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        class="pageList"
+        :page-sizes="[10, 20, 30, 40]"
+        :page-size="pageSize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="counts"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      ></el-pagination>
+    </div>
+    <el-dialog
+      :title="classData.title"
+      :visible.sync="classData.dialogVisible"
+      width="30%"
+      :before-close="handleClose"
+    >
+      <el-form
+        class="demo-form-inline"
+        label-width="100px"
+      >
+        <el-form-item label="Name：">
+          <el-input
+            v-model="classData.name"
+            placeholder="Please enter category name"
+            maxlength="30"
+          />
+        </el-form-item>
+        <el-form-item label="Sort：">
+          <el-input v-model="classData.sort"  type="number" placeholder="please enter sorting" />
+        </el-form-item>
+      </el-form>
+      <span
+        slot="footer"
+        class="dialog-footer"
+      >
+        <el-button
+          size="medium"
+          @click="classData.dialogVisible = false"
+        >Cancel</el-button>
+        <el-button
+          type="primary"
+          size="medium"
+          @click="submitForm()"
+        >Confirm</el-button>
+        <el-button
+          v-if="action != 'edit'"
+          type="primary"
+          size="medium"
+          class="continue"
+          @click="submitForm('go')"
+        > Save and Continue adding </el-button>
+      </span>
+    </el-dialog>
+  </div>
+
+    <script src="../../plugins/vue/vue.js"></script>
+    <!-- import element ui -->
+    <script src="../../plugins/element-ui/index.js"></script>
+    <!-- import axios -->
+    <script src="../../plugins/axios/axios.min.js"></script>
+    <script src="../../js/request.js"></script>
+    <script src="../../api/category.js"></script>
+    <script>
+      new Vue({
+        el: '#category-app',
+        data() {
+          return {
+            action: '',
+            counts: 0,
+            page: 1,
+            pageSize: 10,
+            tableData: [],
+            type :'',
+            classData: {
+              'title': 'add cuisine category',
+              'dialogVisible': false,
+              'categoryId': '',
+              'name': '',
+              sort: ''
+            }
+          }
+        },
+        computed: {},
+        created() {
+          this.init()
+        },
+        mounted() {
+        },
+        methods: {
+          async init () {
+            await getCategoryPage({'page': this.page, 'pageSize': this.pageSize}).then(res => {
+              if (String(res.code) === '1') {
+                this.tableData = res.data.records
+                this.counts = Number(res.data.total)
+              } else {
+                this.$message.error(res.msg || 'editing failed')
+              }
+            }).catch(err => {
+              this.$message.error('something wrong with request ：' + err)
+            })
+          },
+          handleQuery() {
+            this.page = 1;
+            this.init();
+          },
+           // add
+          addClass(st) {
+            if (st == 'class') {
+              this.classData.title = 'add new cuisine category'
+              this.type = '1'
+            } else {
+              this.classData.title = 'add new combo category'
+              this.type = '2'
+            }
+            this.action = 'add'
+            this.classData.name = ''
+            this.classData.sort = ''
+            this.classData.dialogVisible = true
+          },
+          editHandle(dat) {
+            this.classData.title = 'edit category'
+            this.action = 'edit'
+            this.classData.name = dat.name
+            this.classData.sort = dat.sort
+            this.classData.id = dat.id
+            this.classData.dialogVisible = true
+          },
+          // close windwo
+          handleClose(st) {
+            this.classData.dialogVisible = false
+          },
+          //delete
+          deleteHandle(id) {
+            this.$confirm('This action will permanently delete the file, continue?', 'hint', {
+              'confirmButtonText': 'confirm',
+              'cancelButtonText': 'cancel',
+              'type': 'warning'
+            }).then(() => {
+              deleCategory(id).then(res => {
+                if (res.code === 1) {
+                  this.$message.success('deleted successfully！')
+                  this.handleQuery()
+                } else {
+                  this.$message.error(res.msg || 'editing failed')
+                }
+              }).catch(err => {
+                this.$message.error('something wrong with request：' + err)
+              })
+            })
+          },
+          //submit data
+          submitForm(st) {
+              const classData = this.classData
+              const valid = (classData.name === 0 ||classData.name)  && (classData.sort === 0 || classData.sort)
+              if (this.action === 'add') {
+                if (valid) {
+                  const reg = /^\d+$/
+                  if (reg.test(classData.sort)) {
+                    addCategory({'name': classData.name,'type':this.type, sort: classData.sort}).then(res => {
+                      console.log(res)
+                      if (res.code === 1) {
+                        this.$message.success('added successfully！')
+                        if (!st) {
+                          this.classData.dialogVisible = false
+                        } else {
+                          this.classData.name = ''
+                          this.classData.sort = ''
+                        }
+                        this.handleQuery()
+                      } else {
+                        this.$message.error(res.msg || 'editing failed')
+                      }
+                    }).catch(err => {
+                      this.$message.error('something wrong with request：' + err)
+                    })
+                  } else {
+                    this.$message.error('Sort can only enter numeric types')
+                  }
+                  
+              } else {
+                  this.$message.error('Please enter a category name or sort')
+              }
+            } else if (valid) {
+              const reg = /^\d+$/
+              if (reg.test(this.classData.sort)) {
+                editCategory({'id':this.classData.id,'name': this.classData.name, sort: this.classData.sort}).then(res => {
+                  if (res.code === 1) {
+                    this.$message.success('updated successfully！')
+                    this.classData.dialogVisible = false
+                    this.handleQuery()
+                  } else {
+                    this.$message.error(res.msg || 'editing failed')
+                  }
+                }).catch(err => {
+                  this.$message.error('something wrong with request：' + err)
+                })
+              } else {
+                this.$message.error('Sort can only enter numeric types')
+              }
+            } else {
+              this.$message.error('Please enter a category name or sort')
+            }
+          },
+          handleSizeChange (val) {
+            this.pageSize = val
+            this.init()
+          },
+          handleCurrentChange (val) {
+            this.page = val
+            this.init()
+          }
+        }
+      })
+    </script>
+</body>
+</html>

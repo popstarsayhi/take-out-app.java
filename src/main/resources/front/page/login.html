@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,user-scalable=no,minimal-ui">
+    <title>Reggie Takeout</title>
+    <link rel="icon" href="./../images/favico.ico">
+    <!--set different size-->
+    <script src="./../js/base.js"></script>
+    <!--element-ui-->
+    <link rel="stylesheet" href="../../backend/plugins/element-ui/index.css" />
+    <!--vant-->
+    <link rel="stylesheet" href="../styles/vant.min.css"/>
+
+    <link rel="stylesheet" href="../styles/index.css" />
+
+    <link rel="stylesheet" href="./../styles/login.css" />
+</head>
+<body>
+<div id="login" v-loading="loading">
+    <div class="divHead">Login</div>
+    <div class="divContainer">
+        <el-input placeholder=" Please enter phone number" v-model="form.phone"  maxlength='20'/></el-input>
+        <div class="divSplit"></div>
+        <el-input placeholder=" Please enter verification code" v-model="form.code"  maxlength='20'/></el-input>
+        <span @click='getCode'>Get verification code</span>
+    </div>
+    <div class="divMsg" v-if="msgFlag">Phone number is incorrectly entered, please re-enter
+    </div>
+    <el-button type="primary" :class="{btnSubmit:1===1,btnNoPhone:!form.phone,btnPhone:form.phone}" @click="btnLogin">login</el-button>
+</div>
+
+<script src="../../backend/plugins/vue/vue.js"></script>
+
+<script src="../../backend/plugins/element-ui/index.js"></script>
+
+<script src="./../js/vant.min.js"></script>
+
+<script src="../../backend/plugins/axios/axios.min.js"></script>
+<script src="./../js/request.js"></script>
+<script src="./../api/login.js"></script>
+</body>
+<script>
+    new Vue({
+        el:"#login",
+        data(){
+            return {
+                form:{
+                    phone:'',
+                    code:''
+                },
+                msgFlag:false,
+                loading:false
+            }
+        },
+        computed:{},
+        created(){},
+        mounted(){},
+        methods:{
+            getCode(){
+                this.form.code = ''
+                const regex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
+                if (regex.test(this.form.phone)) {
+                    this.msgFlag = false
+                    // this.form.code = (Math.random()*1000000).toFixed(0)
+                    sendMsgApi({phone:this.form.phone})
+                }else{
+                    this.msgFlag = true
+                }
+            },
+            async btnLogin(){
+                if(this.form.phone && this.form.code){
+                    this.loading = true
+                    const res = await loginApi({phone:this.form.phone,code:this.form.code})
+                    this.loading = false
+                    if(res.code === 1){
+                        sessionStorage.setItem("userPhone",this.form.phone)
+                        window.requestAnimationFrame(()=>{
+                            window.location.href= '/front/index.html'
+                        })
+                    }else{
+                        this.$notify({ type:'warning', message:res.msg});
+                    }
+                }else{
+                    this.$notify({ type:'warning', message:'Please enter phone number'});
+                }
+            }
+        }
+    })
+</script>
+</html>
